@@ -178,3 +178,9 @@ pipeline {
     }
   }
 }
+ post {
+    success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
+    failure { echo 'Pipeline failed. Check gates and scans above.' }
+    always  { archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html' }
+  }
+}

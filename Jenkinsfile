@@ -5,8 +5,7 @@ pipeline {
   environment {
     IMAGE = 'osaidbahabri/hd-jenkins-demo'
     CREDS = credentials('dockerhub-creds')
-    // If you create a Jenkins "Secret text" with ID 'sonar-token', uncomment next line:
-    // SONAR_TOKEN = credentials('sonar-token')
+    SONAR_TOKEN = credentials('sonar-token')
   }
 
   stages {

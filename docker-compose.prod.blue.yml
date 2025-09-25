@@ -1,0 +1,9 @@
+services:
+  api-blue:
+    image: yourdockeruser/hd-jenkins-demo:prod
+    container_name: api-blue
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped

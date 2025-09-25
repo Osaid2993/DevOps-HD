@@ -1,0 +1,9 @@
+node_modules
+coverage
+reports
+*.log
+sbom.spdx.json
+trivy.txt
+grype.txt
+zap.html
+.DS_Store

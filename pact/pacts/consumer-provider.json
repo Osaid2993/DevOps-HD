@@ -1,0 +1,31 @@
+{
+  "consumer": {
+    "name": "web-consumer"
+  },
+  "provider": {
+    "name": "api-provider"
+  },
+  "interactions": [
+    {
+      "description": "GET /hello returns world",
+      "request": {
+        "method": "GET",
+        "path": "/hello"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "msg": "world"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}

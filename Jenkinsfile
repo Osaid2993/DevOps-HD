@@ -5,7 +5,6 @@ pipeline {
   environment {
     IMAGE = 'osaidbahabri/hd-jenkins-demo'
     CREDS = credentials('dockerhub-creds')
-    // Make JGit write config inside the workspace to avoid macOS home perms
     XDG_CONFIG_HOME = "${WORKSPACE}/.xdg"
     SONAR_TOKEN = credentials('sonar-token')
   }

@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "build": "echo \"Nothing to build for Node\"",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --ci --coverage --reporters=default --reporters=jest-junit",
-    "lint": "eslint ."
+  "start": "node src/index.js",
+  "build": "echo \"Nothing to build for Node\"",
+  "test": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+  "lint": "eslint ."
   },
+
   "jest-junit": {
     "outputDirectory": "reports/junit",
     "outputName": "junit-results.xml"

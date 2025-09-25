@@ -74,7 +74,8 @@ stage('Mutation Tests (Stryker)') {
           curl -fsS http://localhost:3001/health
           docker run --rm -t owasp/zap2docker-stable zap-baseline.py                 -t http://host.docker.internal:3001 -r zap.html || true
         '''
-        publishHTML([reportDir:'.', reportFiles:'zap.html', reportName:'OWASP ZAP'])
+       archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html'
+       echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"
       }
       post { always { sh 'docker compose -f docker-compose.staging.yml down || true' } }
     }

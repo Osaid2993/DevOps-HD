@@ -13,24 +13,20 @@ pipeline {
     stage('Build & Unit Tests') {
   steps {
     sh 'node -v && npm ci'
-    sh 'npm test'
+    sh 'export NODE_OPTIONS=--experimental-vm-modules; npm test'
   }
   post {
-    always {
-      junit 'reports/junit/junit-results.xml'
-    }
+    always { junit 'reports/junit/junit-results.xml' }
   }
 }
 
+stage('Mutation Tests (Stryker)') {
+  steps {
+    sh 'export NODE_OPTIONS=--experimental-vm-modules; npx stryker run || true'
+    archiveArtifacts 'reports/mutation/**/*, **/stryker*.json'
+  }
+}
 
-    stage('Mutation Tests (Stryker)') {
-      steps {
-        sh '''
-          npx stryker run || true
-        '''
-        archiveArtifacts 'reports/mutation/**/*, **/stryker*.json'
-      }
-    }
 
     stage('Lint & SAST') {
   steps {

@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node src/index.js",
     "build": "echo \"Nothing to build for Node\"",
-    "test": "jest --ci --coverage",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --ci --coverage"
     "lint": "eslint ."
   },
   "dependencies": {

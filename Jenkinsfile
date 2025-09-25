@@ -130,61 +130,51 @@ pipeline {
       }
     }
 
-        stage('Blue/Green Deploy + Health & Rollback') {
-      steps {
-        script {
-          withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-            sh '''
-              set -e
-              echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-              docker pull $IMAGE:prod || true
-
-              # bring up GREEN on 3001
-              docker compose -f docker-compose.prod.green.yml up -d
-              sleep 5
-              curl -fsS http://localhost:3001/health
-
-              # switch to GREEN on 3000
-              docker compose -f docker-compose.prod.blue.yml down || true
-              docker stop api-green || true
-              docker rm api-green || true
-              docker run -d --name api-green -p 3000:3000 $IMAGE:prod
-
-              # verify prod
-              sleep 3
-              curl -fsS http://localhost:3000/health
-              docker logout || true
-            '''
-          }
-        }
-      }
-      post {
-        unsuccessful {
-          echo 'Health check failed. Rolling back to BLUE.'
-          sh '''
-            docker compose -f docker-compose.prod.green.yml down || true
-            docker compose -f docker-compose.prod.blue.yml up -d
-            sleep 3
-            curl -fsS http://localhost:3000/health || true
-          '''
-        }
-      }
-    } 
-
-    stage('Monitoring (light)') {
-      steps {
+       stage('Blue/Green Deploy + Health & Rollback') {
+  steps {
+    script {
+      withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
         sh '''
-          echo "Health: $(curl -fsS http://localhost:3000/health)"
-          docker logs --since 5m api-green | tail -n 50 > logs_tail.txt || true
+          set -e
+
+          docker rm -f api-green  >/dev/null 2>&1 || true
+          docker rm -f api-blue   >/dev/null 2>&1 || true
+          docker compose -f docker-compose.prod.green.yml down || true
+          docker compose -f docker-compose.prod.blue.yml  down || true
+          docker ps -q --filter "publish=3000" | xargs -r docker rm -f || true
+          docker ps -q --filter "publish=3001" | xargs -r docker rm -f || true
+
+          echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+          docker pull $IMAGE:prod || true
+
+          docker compose -f docker-compose.prod.green.yml up -d --force-recreate
+          sleep 5
+          curl -fsS http://localhost:3001/health
+
+          docker compose -f docker-compose.prod.blue.yml down || true
+          docker rm -f api-green >/dev/null 2>&1 || true
+          docker run -d --name api-green -p 3000:3000 $IMAGE:prod
+
+          sleep 3
+          curl -fsS http://localhost:3000/health
+
+          docker logout || true
         '''
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'logs_tail.txt'
       }
     }
   }
-
   post {
-    success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
-    failure { echo 'Pipeline failed. Check gates and scans above.' }
-    always  { archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html' }
+    unsuccessful {
+      echo 'Health check failed. Rolling back to BLUE.'
+      sh '''
+        # cleanup any GREEN, free 3000 just in case, then bring BLUE back
+        docker rm -f api-green >/dev/null 2>&1 || true
+        docker compose -f docker-compose.prod.green.yml down || true
+        docker ps -q --filter "publish=3000" | xargs -r docker rm -f || true
+        docker compose -f docker-compose.prod.blue.yml up -d --force-recreate
+        sleep 3
+        curl -fsS http://localhost:3000/health || true
+      '''
+    }
   }
 }

@@ -129,8 +129,7 @@ pipeline {
         }
       }
     }
-
-       stage('Blue/Green Deploy + Health & Rollback') {
+stage('Blue/Green Deploy + Health & Rollback') {
   steps {
     script {
       withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
@@ -178,6 +177,8 @@ pipeline {
     }
   }
 }
+
+       
  post {
     success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
     failure { echo 'Pipeline failed. Check gates and scans above.' }

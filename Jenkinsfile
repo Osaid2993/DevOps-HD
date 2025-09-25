@@ -28,12 +28,17 @@ stage('Mutation Tests (Stryker)') {
 }
 
 
+    environment {
+    SONAR_TOKEN = credentials('sonar-token')
+  }
+  stages {
     stage('Lint & SAST') {
-  steps {
-    sh 'npm run lint || true'
-    sh 'sonar-scanner || true'  
+      steps {
+        sh 'sonar-scanner'   
+      }
     }
   }
+}
 
     stage('Contract Test (Pact)') {
       steps {

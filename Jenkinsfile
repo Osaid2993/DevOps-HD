@@ -11,12 +11,17 @@ pipeline {
     stage('Checkout') { steps { checkout scm } }
 
     stage('Build & Unit Tests') {
-      steps {
-        sh 'node -v && npm ci'
-        sh 'npm test'
-      }
-      post { always { junit allowEmptyResults: true, testResults: '**/junit-*.xml' } }
+  steps {
+    sh 'node -v && npm ci'
+    sh 'npm test'
+  }
+  post {
+    always {
+      junit 'reports/junit/junit-results.xml'
     }
+  }
+}
+
 
     stage('Mutation Tests (Stryker)') {
       steps {
@@ -89,7 +94,7 @@ pipeline {
       }
     }
 
-    stage('🔁 Blue/Green Deploy + Health & Rollback') {
+    stage('Blue/Green Deploy + Health & Rollback') {
       steps {
         script {
           sh '''

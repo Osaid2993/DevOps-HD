@@ -97,7 +97,6 @@ pipeline {
             sleep 4
             curl -fsS http://localhost:3001/health
 
-            # login to avoid Docker Hub pull limits, mount workspace so zap.html lands here
             echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
             docker run --rm -t -v "$PWD":/zap/wrk owasp/zap2docker-stable \
               zap-baseline.py -t http://host.docker.internal:3001 -r zap.html || true

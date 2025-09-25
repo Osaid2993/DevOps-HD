@@ -2,7 +2,7 @@ pipeline {
   agent any
   options { timestamps(); ansiColor('xterm') }
   environment {
-    IMAGE = 'yourdockeruser/hd-jenkins-demo'
+    IMAGE = 'osaidbahabri/hd-jenkins-demo'
     CREDS = credentials('dockerhub-creds')
   }
 

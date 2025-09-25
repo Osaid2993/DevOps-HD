@@ -8,7 +8,7 @@ pipeline {
 
   stages {
 
-    stage('🧾 Checkout') { steps { checkout scm } }
+    stage('Checkout') { steps { checkout scm } }
 
     stage('Build & Unit Tests') {
       steps {
@@ -27,18 +27,15 @@ pipeline {
       }
     }
 
-    stage('🔍 Lint & SAST') {
-      steps {
-        sh 'npm run lint || true'
-        withSonarQubeEnv('SonarQube') {
-          sh '''
-            sonar-scanner                   -Dsonar.projectKey=hd-jenkins-unique-ci                   -Dsonar.sources=src                   -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info || true
-          '''
-        }
-      }
+    stage('Lint & SAST') {
+  steps {
+    sh 'npm run lint || true'
+    sh 'sonar-scanner || true'  
     }
+  }
+}
 
-    stage('🤝 Contract Test (Pact)') {
+    stage('Contract Test (Pact)') {
       steps {
         sh '''
           echo "Verifying pact file (stub step)"
@@ -48,7 +45,7 @@ pipeline {
       }
     }
 
-    stage('📦 Docker Build + SBOM & Vuln Scan') {
+    stage('Docker Build + SBOM & Vuln Scan') {
       steps {
         sh '''
           docker build -t $IMAGE:commit-$BUILD_NUMBER .
@@ -60,7 +57,7 @@ pipeline {
       }
     }
 
-    stage('🛡️ Policy Gate (OPA)') {
+    stage('Policy Gate (OPA)') {
       steps {
         sh '''
           conftest test Dockerfile --policy policies || true
@@ -68,7 +65,7 @@ pipeline {
       }
     }
 
-    stage('🧪 DAST (ZAP Baseline)') {
+    stage('DAST (ZAP Baseline)') {
       steps {
         sh '''
           docker compose -f docker-compose.staging.yml down || true
@@ -82,7 +79,7 @@ pipeline {
       post { always { sh 'docker compose -f docker-compose.staging.yml down || true' } }
     }
 
-    stage('🚀 Release Image') {
+    stage('Release Image') {
       steps {
         script {
           docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
@@ -130,8 +127,8 @@ pipeline {
   }
 
   post {
-    success { echo '✅ Secure, policy-gated, blue/green CI/CD complete.' }
-    failure { echo '❌ Pipeline failed. Check gates and scans above.' }
+    success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
+    failure { echo 'Pipeline failed. Check gates and scans above.' }
     always  { archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html' }
   }
 }

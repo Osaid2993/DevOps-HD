@@ -5,23 +5,28 @@ pipeline {
   environment {
     IMAGE = 'osaidbahabri/hd-jenkins-demo'
     CREDS = credentials('dockerhub-creds')
+    // Make JGit write config inside the workspace to avoid macOS home perms
+    XDG_CONFIG_HOME = "${WORKSPACE}/.xdg"
     SONAR_TOKEN = credentials('sonar-token')
   }
 
   stages {
 
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+        sh 'mkdir -p "$XDG_CONFIG_HOME/jgit" || true'
+      }
     }
 
     stage('Build & Unit Tests') {
       steps {
         sh '''
-          node -v
-          npm ci
-          mkdir -p reports/junit || true
+          node -v && npm ci
+          mkdir -p reports/junit
           export NODE_OPTIONS=--experimental-vm-modules
-          JEST_JUNIT_OUTPUT=reports/junit/junit-results.xml npm test -- --ci --coverage --reporters=default --reporters=jest-junit
+          export JEST_JUNIT_OUTPUT=reports/junit/junit-results.xml
+          npm test -- --ci --coverage --reporters=default --reporters=jest-junit
         '''
       }
       post {
@@ -42,14 +47,16 @@ pipeline {
     }
 
     stage('Lint & SAST') {
+      environment {
+        SONAR_TOKEN = credentials('sonar-token')
+      }
       steps {
         sh 'npm run lint || true'
-        // Run Sonar only if a token is available
         sh '''
           if [ -n "$SONAR_TOKEN" ]; then
             sonar-scanner
           else
-            echo "No SONAR_TOKEN configured; skipping sonar-scanner."
+            echo "SONAR_TOKEN not set, skipping Sonar analysis"
           fi
         '''
       }
@@ -79,20 +86,28 @@ pipeline {
 
     stage('Policy Gate (OPA)') {
       steps {
-        sh 'conftest test Dockerfile --parser dockerfile -p policies || true'
+        sh '''
+          conftest test Dockerfile --parser dockerfile -p policies || true
+        '''
       }
     }
 
     stage('DAST (ZAP Baseline)') {
       steps {
-        sh '''
-          docker compose -f docker-compose.staging.yml down || true
-          docker compose -f docker-compose.staging.yml up -d --build
-          sleep 4
-          curl -fsS http://localhost:3001/health
-          docker run --rm -t owasp/zap2docker-weekly zap-baseline.py \
-            -t http://host.docker.internal:3001 -r zap.html || true
-        '''
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+          sh '''
+            docker compose -f docker-compose.staging.yml down || true
+            docker compose -f docker-compose.staging.yml up -d --build
+            sleep 4
+            curl -fsS http://localhost:3001/health
+
+            # login to avoid Docker Hub pull limits, mount workspace so zap.html lands here
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+            docker run --rm -t -v "$PWD":/zap/wrk owasp/zap2docker-weekly \
+              zap-baseline.py -t http://host.docker.internal:3001 -r zap.html || true
+            docker logout || true
+          '''
+        }
         archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html'
         echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"
       }
@@ -105,34 +120,44 @@ pipeline {
 
     stage('Release Image') {
       steps {
-        script {
-          docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
-            sh 'docker tag $IMAGE:commit-$BUILD_NUMBER $IMAGE:prod'
-            sh 'docker push $IMAGE:prod'
-          }
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+          sh '''
+            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+            docker tag $IMAGE:commit-$BUILD_NUMBER $IMAGE:prod
+            docker push $IMAGE:prod
+            docker logout || true
+          '''
         }
       }
     }
 
     stage('Blue/Green Deploy + Health & Rollback') {
       steps {
-        sh '''
-          set -e
-          # bring up GREEN on 3001
-          docker compose -f docker-compose.prod.green.yml up -d
-          sleep 5
-          curl -fsS http://localhost:3001/health
+        script {
+          withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+            sh '''
+              set -e
+              echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+              docker pull $IMAGE:prod || true
 
-          # switch to GREEN on 3000
-          docker compose -f docker-compose.prod.blue.yml down || true
-          docker stop api-green || true
-          docker rm api-green || true
-          docker run -d --name api-green -p 3000:3000 $IMAGE:prod
+              # bring up GREEN on 3001
+              docker compose -f docker-compose.prod.green.yml up -d
+              sleep 5
+              curl -fsS http://localhost:3001/health
 
-          # verify prod
-          sleep 3
-          curl -fsS http://localhost:3000/health
-        '''
+              # switch to GREEN on 3000
+              docker compose -f docker-compose.prod.blue.yml down || true
+              docker stop api-green || true
+              docker rm api-green || true
+              docker run -d --name api-green -p 3000:3000 $IMAGE:prod
+
+              # verify prod
+              sleep 3
+              curl -fsS http://localhost:3000/health
+              docker logout || true
+            '''
+          }
+        }
       }
       post {
         unsuccessful {
@@ -146,7 +171,7 @@ pipeline {
         }
       }
     }
-  } // end stages
+  }
 
   post {
     success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
@@ -154,3 +179,4 @@ pipeline {
     always  { archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html' }
   }
 }
+

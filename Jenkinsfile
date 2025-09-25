@@ -58,12 +58,13 @@ stage('Mutation Tests (Stryker)') {
     }
 
     stage('Policy Gate (OPA)') {
-      steps {
-        sh '''
-          conftest test Dockerfile --policy policies || true
-        '''
-      }
-    }
+  steps {
+    sh '''
+      conftest test Dockerfile --parser dockerfile -p policies || true
+    '''
+  }
+}
+
 
     stage('DAST (ZAP Baseline)') {
       steps {

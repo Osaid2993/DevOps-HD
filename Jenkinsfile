@@ -169,9 +169,18 @@ pipeline {
           '''
         }
       }
-    }
-  }
 
+  stage('Monitoring (light)') {
+  steps {
+    sh '''
+      echo "Health: $(curl -fsS http://localhost:3000/health)"
+      docker logs --since 5m api-green | tail -n 50 > logs_tail.txt || true
+    '''
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'logs_tail.txt'
+  }
+ }
+ }
+  }
   post {
     success { echo 'Secure, policy-gated, blue/green CI/CD complete.' }
     failure { echo 'Pipeline failed. Check gates and scans above.' }

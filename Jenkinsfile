@@ -33,7 +33,6 @@ pipeline {
     sh 'sonar-scanner || true'  
     }
   }
-}
 
     stage('Contract Test (Pact)') {
       steps {

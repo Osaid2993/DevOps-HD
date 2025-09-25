@@ -6,16 +6,3 @@
   "coverageAnalysis": "off",
   "jest": { "enableFindRelatedTests": true }
 }
-
-  },
-  "mutate": [
-    "src/**/*.js",
-    "!src/**/*.test.js"
-  ],
-  "reporters": [
-    "html",
-    "clear-text",
-    "progress"
-  ],
-  "checkers": []
-}

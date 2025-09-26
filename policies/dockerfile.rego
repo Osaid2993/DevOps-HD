@@ -16,6 +16,5 @@ msg := "Container must not run as root"
 deny[msg] {
   not some i
   input.commands[i].Cmd == "expose"
-  # require either 3000 or 3001 exposed (your pipeline uses both)
 }
 msg := "Expose port 3000 or 3001"

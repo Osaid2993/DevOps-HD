@@ -103,6 +103,11 @@ pipeline {
             docker logout || true
           '''
         }
+        
+        [ -f zap.html ] || echo "<html><body><h3>ZAP run skipped or failed to pull image.</h3></body></html>" > zap.html
+      '''
+         }
+         
         archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html'
         echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"
       }

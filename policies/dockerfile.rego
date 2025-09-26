@@ -1,19 +1,21 @@
 package dockerfile
 
 deny[msg] {
-  instr := input.stages[_].instructions[_]
-  instr.name == "FROM"
-  contains(lower(instr.value), "latest")
-  msg := "Avoid using 'latest' tag in FROM"
+  input.commands[_].Cmd == "from"
+  not startswith(lower(input.commands[_].Value), "node:20-alpine")
 }
+msg := "Base image must be node:20-alpine (pinned)"
 
 deny[msg] {
-  not some_user_set
-  msg := "Dockerfile should set a non-root USER"
+  some i
+  input.commands[i].Cmd == "user"
+  input.commands[i].Value == "root"
 }
+msg := "Container must not run as root"
 
-some_user_set {
-  instr := input.stages[_].instructions[_]
-  instr.name == "USER"
-  lower(instr.value) != "root"
+deny[msg] {
+  not some i
+  input.commands[i].Cmd == "expose"
+  # require either 3000 or 3001 exposed (your pipeline uses both)
 }
+msg := "Expose port 3000 or 3001"

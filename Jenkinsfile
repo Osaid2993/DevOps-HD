@@ -102,11 +102,9 @@ pipeline {
               zap-baseline.py -t http://host.docker.internal:3001 -r zap.html || true
             docker logout || true
           '''
+           [ -f zap.html ] || echo "<html><body><h3>ZAP run skipped or failed to pull image.</h3></body></html>" > zap.html
         }
-        
-        [ -f zap.html ] || echo "<html><body><h3>ZAP run skipped or failed to pull image.</h3></body></html>" > zap.html
-      '''
-         }
+   
          
         archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html'
         echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"

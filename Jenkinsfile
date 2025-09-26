@@ -89,32 +89,30 @@ pipeline {
     }
 
     stage('DAST (ZAP Baseline)') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
-          sh '''
-            docker compose -f docker-compose.staging.yml down || true
-            docker compose -f docker-compose.staging.yml up -d --build
-            sleep 4
-            curl -fsS http://localhost:3001/health
+  steps {
+    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKERHUB_USER', passwordVariable: 'DOCKERHUB_PASS')]) {
+      sh '''
+        docker compose -f docker-compose.staging.yml down || true
+        docker compose -f docker-compose.staging.yml up -d --build
+        sleep 4
+        curl -fsS http://localhost:3001/health
 
-            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-            docker run --rm -t -v "$PWD":/zap/wrk owasp/zap2docker-stable \
-              zap-baseline.py -t http://host.docker.internal:3001 -r zap.html || true
-            docker logout || true
-          '''
-           [ -f zap.html ] || echo "<html><body><h3>ZAP run skipped or failed to pull image.</h3></body></html>" > zap.html
-        }
-   
-         
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'zap.html'
-        echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"
-      }
-      post {
-        always {
-          sh 'docker compose -f docker-compose.staging.yml down || true'
-        }
-      }
+        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+        docker pull owasp/zap2docker-stable || true
+        docker run --rm -t -v "$PWD":/zap/wrk owasp/zap2docker-stable \
+          zap-baseline.py -t http://host.docker.internal:3001 -r zap.html || true
+        docker logout || true
+
+        # if report didn’t generate, write a stub so Jenkins can archive something
+        [ -f zap.html ] || echo "<html><body><h3>ZAP run skipped or failed to pull image.</h3></body></html>" > zap.html
+      '''
     }
+    archiveArtifacts allowEmptyArchive: false, artifacts: 'zap.html'
+    echo "ZAP report: ${env.BUILD_URL}artifact/zap.html"
+  }
+  post { always { sh 'docker compose -f docker-compose.staging.yml down || true' } }
+}
+
 
     stage('Release Image') {
       steps {

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/core/schema/stryker-schema.json",
+  "testRunner": "jest",
+  "reporters": ["html", "clear-text", "progress"],
+  "mutate": ["src/**/*.js", "!src/**/*.test.js"],
+  "coverageAnalysis": "off",
+  "jest": { "enableFindRelatedTests": true }
+}

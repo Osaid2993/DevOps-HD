@@ -36,7 +36,6 @@ The Jenkins pipeline runs the following stages on every commit:
 - **Registry:** Docker Hub
 
 ## Repository structure
-
 .
 ├── src/                        # Express application source
 ├── policies/                   # OPA policies applied to the Dockerfile

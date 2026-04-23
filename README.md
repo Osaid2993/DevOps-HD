@@ -35,22 +35,6 @@ The Jenkins pipeline runs the following stages on every commit:
 - **CI/CD:** Jenkins
 - **Registry:** Docker Hub
 
-## Repository structure
-.
-├── src/                        # Express application source
-├── policies/                   # OPA policies applied to the Dockerfile
-├── pact/pacts/                 # Pact contract files
-├── archive/                    # Older iterations kept for reference
-├── Dockerfile                  # Application image
-├── Jenkinsfile                 # CI/CD pipeline definition
-├── docker-compose.staging.yml  # Staging stack used for DAST
-├── docker-compose.prod.blue.yml
-├── docker-compose.prod.green.yml
-├── sonar-project.properties    # SonarQube configuration
-├── stryker.conf.json           # Mutation testing configuration
-├── jest.config.js
-└── eslint.config.js
-
 ## Running locally
 
 Install dependencies and start the app:

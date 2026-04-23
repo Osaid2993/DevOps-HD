@@ -37,6 +37,7 @@ The Jenkins pipeline runs the following stages on every commit:
 
 ## Repository structure
 
+.
 ├── src/                        # Express application source
 ├── policies/                   # OPA policies applied to the Dockerfile
 ├── pact/pacts/                 # Pact contract files
